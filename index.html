@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biji - Simple Offline Notes</title>
+    <meta name="description" content="Biji - A simple, elegant offline note manager">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📝</text></svg>">
+</head>
+<body>
+    <!-- Main App Container -->
+    <div class="app">
+        
+        <!-- Header with Brand and Search -->
+        <header class="header">
+            <div class="header-container">
+                <!-- Logo -->
+                <div class="brand">
+                    <span class="brand-icon">📝</span>
+                    <h1 class="brand-name">Biji</h1>
+                    <span class="brand-tagline">Simple offline notes</span>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <input 
+                        type="search" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Search notes..."
+                        autocomplete="off"
+                    >
+                    <span class="search-icon">🔍</span>
+                </div>
+                
+                <!-- New Note Button -->
+                <button id="newNoteBtn" class="btn btn-primary">
+                    <span>➕</span>
+                    <span>New Note</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                
+                <!-- Stats Bar -->
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Notes:</span>
+                        <span id="totalNotes" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Filtered:</span>
+                        <span id="filteredNotes" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Storage Used:</span>
+                        <span id="storageUsed" class="stat-value">0 KB</span>
+                    </div>
+                </div>
+
+                <!-- Notes Grid -->
+                <div id="notesGrid" class="notes-grid">
+                    <!-- Notes will be rendered here -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state">
+                    <span class="empty-icon">📝</span>
+                    <h2>No notes yet</h2>
+                    <p>Create your first note to get started</p>
+                    <button class="btn btn-primary" onclick="document.getElementById('newNoteBtn').click()">
+                        Create First Note
+                    </button>
+                </div>
+
+                <!-- No Results State -->
+                <div id="noResults" class="no-results">
+                    <span class="no-results-icon">🔍</span>
+                    <h2>No notes found</h2>
+                    <p>Try a different search term</p>
+                    <button class="btn btn-secondary" onclick="document.getElementById('searchInput').value=''; document.getElementById('searchInput').dispatchEvent(new Event('input'))">
+                        Clear Search
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <span>Biji - All your notes stored locally in your browser</span>
+                <button id="clearAllBtn" class="btn btn-danger btn-small">Clear All Data</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Note Editor Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">New Note</h2>
+                <button id="closeModalBtn" class="modal-close">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Title Input -->
+                <div class="form-group">
+                    <label for="noteTitle">Title</label>
+                    <input 
+                        type="text" 
+                        id="noteTitleInput" 
+                        class="form-input" 
+                        placeholder="Enter note title..."
+                        maxlength="100"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <!-- Content Textarea -->
+                <div class="form-group">
+                    <label for="noteContent">Content</label>
+                    <textarea 
+                        id="noteContentInput" 
+                        class="form-textarea" 
+                        placeholder="Write your note here..."
+                        rows="15"
+                    ></textarea>
+                </div>
+
+                <!-- Character Counter -->
+                <div class="form-footer">
+                    <span class="char-counter">
+                        <span id="charCount">0</span> characters
+                    </span>
+                    <span class="word-counter">
+                        <span id="wordCount">0</span> words
+                    </span>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="deleteBtn" class="btn btn-danger">Delete</button>
+                <button id="saveBtn" class="btn btn-primary">Save Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Note Card Template -->
+    <template id="noteCardTemplate">
+        <article class="note-card">
+            <div class="note-header">
+                <h3 class="note-title"></h3>
+                <button class="note-copy" title="Copy to clipboard">📋</button>
+            </div>
+            <p class="note-content"></p>
+            <div class="note-footer">
+                <time class="note-date"></time>
+                <div class="note-actions">
+                    <button class="note-edit" title="Edit note">✏️</button>
+                    <button class="note-delete" title="Delete note">🗑️</button>
+                </div>
+            </div>
+        </article>
+    </template>
+
+    <!-- Load Scripts -->
+    <script type="module" src="./styles.js"></script>
+    <script type="module" src="./main.js"></script>
+</body>
+</html>
