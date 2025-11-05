@@ -1,6 +1,10 @@
 // Biji - Styles Module
 // All CSS styles for the note manager
 
+// Define preset background colors and pick one randomly
+const backgroundOptions = ['#FF8F00', '#D32F2F', '#388E3C', '#1976D2', '#7B1FA2'];
+const selectedBackground = backgroundOptions[Math.floor(Math.random() * backgroundOptions.length)];
+
 const styles = `
 /* Reset and Base */
 * {
@@ -49,6 +53,7 @@ body {
 /* Header */
 .header {
     background: var(--surface);
+    background-color: ${selectedBackground};
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
     position: sticky;
@@ -79,11 +84,11 @@ body {
 .brand-name {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--primary);
+    color: white;
 }
 
 .brand-tagline {
-    color: var(--text-secondary);
+    color: white;
     font-size: 0.875rem;
 }
 
@@ -469,6 +474,7 @@ body {
 /* Footer */
 .footer {
     background: var(--surface);
+    background-color: ${selectedBackground};
     border-top: 1px solid var(--border);
     padding: 1rem;
     margin-top: auto;
@@ -485,7 +491,7 @@ body {
 }
 
 .footer-content span {
-    color: var(--text-secondary);
+    color: white;
     font-size: 0.875rem;
 }
 

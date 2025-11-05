@@ -1,0 +1,9 @@
+{
+  "name": "biji",
+  "version": "1.0.0",
+  "description": "biji",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
