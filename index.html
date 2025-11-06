@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="color-scheme" content="dark">
     <title>Biji 筆記 - Simple Offline Notes</title>
     <meta name="description" content="Biji - A simple, elegant offline note manager">
     <link rel="manifest" href="manifest.json">
@@ -33,6 +35,12 @@
                     >
                     <span class="search-icon">🔍</span>
                 </div>
+                
+                <!-- Medical Profile Button -->
+                <button id="medicalProfileBtn" class="btn btn-secondary">
+                    <span>🏥</span>
+                    <span>筆記 Hikki</span>
+                </button>
                 
                 <!-- New Note Button -->
                 <button id="newNoteBtn" class="btn btn-primary">
@@ -67,6 +75,93 @@
                     <!-- Notes will be rendered here -->
                 </div>
 
+                <!-- Medical Profile View (Hidden by default) -->
+                <div id="medicalProfileView" class="medical-profile-view" style="display: none;">
+                    <div class="medical-card">
+                        <div class="medical-header">
+                            <h2>筆記 (Medical Profile)</h2>
+                            <div class="medical-actions">
+                                <button id="copyMedicalBtn" class="btn-icon" title="Copy to clipboard">📋</button>
+                                <button id="editMedicalBtn" class="btn btn-primary btn-small">Edit</button>
+                            </div>
+                        </div>
+                        <div class="medical-content">
+                            <div class="medical-field">
+                                <label>Name / 名前:</label>
+                                <span id="field-name" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Birthday / 誕生日:</label>
+                                <span id="field-birthday" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Blood Type / 血液型:</label>
+                                <span id="field-bloodtype" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Weight (kg) / 体重:</label>
+                                <span id="field-weight" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Height (cm) / 身長:</label>
+                                <span id="field-height" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>BMI / 体格指数:</label>
+                                <span id="field-bmi" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Forbidden Food / 禁止食品:</label>
+                                <span id="field-forbidden" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Blood Pressure / 血圧:</label>
+                                <span id="field-bloodpressure" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Has Diabetes / 糖尿病:</label>
+                                <span id="field-diabetes" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Eyes Vision / 視力:</label>
+                                <span id="field-vision" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Hearing / 聴力:</label>
+                                <span id="field-hearing" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Medical Details / 医療詳細:</label>
+                                <span id="field-medical" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Allergies / アレルギー:</label>
+                                <span id="field-allergies" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Father's Name / 父の名前:</label>
+                                <span id="field-father" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Mother's Name / 母の名前:</label>
+                                <span id="field-mother" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Siblings / 兄弟姉妹:</label>
+                                <span id="field-siblings" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Children / 子供:</label>
+                                <span id="field-children" class="field-value"></span>
+                            </div>
+                            <div class="medical-field">
+                                <label>Languages / 言語:</label>
+                                <span id="field-languages" class="field-value"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Empty State -->
                 <div id="emptyState" class="empty-state">
                     <span class="empty-icon">📝</span>
@@ -93,7 +188,6 @@
         <footer class="footer">
             <div class="footer-content">
                 <span>Biji - All your notes stored locally in your browser</span>
-                <button id="clearAllBtn" class="btn btn-danger btn-small">Clear All Data</button>
             </div>
         </footer>
     </div>
@@ -153,6 +247,113 @@
 
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Medical Profile Edit Modal -->
+    <div id="medicalModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Medical Profile / 医療プロフィール編集</h2>
+                <button id="closeMedicalModalBtn" class="modal-close">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name / 名前</label>
+                    <input type="text" id="medical-name" class="form-input" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label>Birthday / 誕生日</label>
+                    <input type="date" id="medical-birthday" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Blood Type / 血液型</label>
+                    <select id="medical-bloodtype" class="form-input">
+                        <option value="">Select...</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Weight (kg) / 体重</label>
+                    <input type="number" id="medical-weight" class="form-input" step="0.1" placeholder="70">
+                </div>
+                <div class="form-group">
+                    <label>Height (cm) / 身長</label>
+                    <input type="number" id="medical-height" class="form-input" step="0.1" placeholder="170">
+                </div>
+                <div class="form-group">
+                    <label>BMI / 体格指数</label>
+                    <input type="text" id="medical-bmi" class="form-input" readonly placeholder="Auto-calculated">
+                </div>
+                <div class="form-group">
+                    <label>Forbidden Food / 禁止食品</label>
+                    <input type="text" id="medical-forbidden" class="form-input" placeholder="Foods to avoid">
+                </div>
+                <div class="form-group">
+                    <label>Blood Pressure / 血圧</label>
+                    <input type="text" id="medical-bloodpressure" class="form-input" placeholder="120/80">
+                </div>
+                <div class="form-group">
+                    <label>Has Diabetes / 糖尿病</label>
+                    <select id="medical-diabetes" class="form-input">
+                        <option value="">Select...</option>
+                        <option value="No">No / いいえ</option>
+                        <option value="Type 1">Type 1 / 1型</option>
+                        <option value="Type 2">Type 2 / 2型</option>
+                        <option value="Gestational">Gestational / 妊娠糖尿病</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Eyes Vision / 視力</label>
+                    <input type="text" id="medical-vision" class="form-input" placeholder="20/20 or prescription">
+                </div>
+                <div class="form-group">
+                    <label>Hearing / 聴力</label>
+                    <input type="text" id="medical-hearing" class="form-input" placeholder="Normal or details">
+                </div>
+                <div class="form-group">
+                    <label>Medical Details / 医療詳細</label>
+                    <textarea id="medical-medical" class="form-textarea" rows="3" placeholder="Important medical information"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Allergies / アレルギー</label>
+                    <textarea id="medical-allergies" class="form-textarea" rows="2" placeholder="List any allergies"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Father's Name / 父の名前</label>
+                    <input type="text" id="medical-father" class="form-input" placeholder="Father's name">
+                </div>
+                <div class="form-group">
+                    <label>Mother's Name / 母の名前</label>
+                    <input type="text" id="medical-mother" class="form-input" placeholder="Mother's name">
+                </div>
+                <div class="form-group">
+                    <label>Siblings / 兄弟姉妹 (Name & Birthday)</label>
+                    <textarea id="medical-siblings" class="form-textarea" rows="2" placeholder="John - 01/15/1990&#10;Jane - 03/22/1992"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Children / 子供 (Name & Birthday)</label>
+                    <textarea id="medical-children" class="form-textarea" rows="2" placeholder="Emma - 06/10/2015&#10;Lucas - 09/05/2018"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Languages / 言語</label>
+                    <input type="text" id="medical-languages" class="form-input" placeholder="English, Japanese, Spanish">
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="cancelMedicalBtn" class="btn btn-secondary">Cancel</button>
+                <button id="saveMedicalBtn" class="btn btn-primary">Save Profile</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Note Card Template -->
     <template id="noteCardTemplate">
