@@ -1,15 +1,25 @@
 // Biji - Main JavaScript
-// Simple note management with IndexedDB
+// Simple note management with IndexedDB and Medical Profile
 
 // Database configuration
 const DB_NAME = 'BijiDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'notes';
+const DB_VERSION = 2; // Increased version for new structure
+const NOTES_STORE = 'notes';
+const MEDICAL_STORE = 'medical';
 
 let db = null;
 let currentNote = null;
 let allNotes = [];
 let filteredNotes = [];
+let medicalProfile = {};
+let isShowingMedical = false;
+
+// Medical profile field IDs
+const MEDICAL_FIELDS = [
+    'name', 'birthday', 'bloodtype', 'weight', 'height', 'bmi',
+    'forbidden', 'bloodpressure', 'diabetes', 'vision', 'hearing',
+    'medical', 'allergies', 'father', 'mother', 'siblings', 'children', 'languages'
+];
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
@@ -31,23 +41,32 @@ function initDB() {
         db = request.result;
         console.log('Database opened successfully');
         loadNotes();
+        loadMedicalProfile();
     };
     
     request.onupgradeneeded = (e) => {
         db = e.target.result;
         
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-            const objectStore = db.createObjectStore(STORE_NAME, { 
+        // Create notes store if it doesn't exist
+        if (!db.objectStoreNames.contains(NOTES_STORE)) {
+            const notesStore = db.createObjectStore(NOTES_STORE, { 
                 keyPath: 'id', 
                 autoIncrement: true 
             });
             
-            objectStore.createIndex('title', 'title', { unique: false });
-            objectStore.createIndex('created', 'created', { unique: false });
-            objectStore.createIndex('modified', 'modified', { unique: false });
-            
-            console.log('Database setup complete');
+            notesStore.createIndex('title', 'title', { unique: false });
+            notesStore.createIndex('created', 'created', { unique: false });
+            notesStore.createIndex('modified', 'modified', { unique: false });
         }
+        
+        // Create medical store if it doesn't exist
+        if (!db.objectStoreNames.contains(MEDICAL_STORE)) {
+            const medicalStore = db.createObjectStore(MEDICAL_STORE, { 
+                keyPath: 'id' 
+            });
+        }
+        
+        console.log('Database setup complete');
     };
 }
 
@@ -55,6 +74,11 @@ function initDB() {
 function setupEventListeners() {
     // Header buttons
     document.getElementById('newNoteBtn').addEventListener('click', openNewNote);
+    document.getElementById('medicalProfileBtn').addEventListener('click', toggleMedicalProfile);
+    
+    // Medical profile buttons
+    document.getElementById('editMedicalBtn')?.addEventListener('click', openMedicalEdit);
+    document.getElementById('copyMedicalBtn')?.addEventListener('click', copyMedicalProfile);
     
     // Search
     const searchInput = document.getElementById('searchInput');
@@ -63,21 +87,28 @@ function setupEventListeners() {
         filterNotes(searchTerm);
     });
     
-    // Modal buttons
+    // Note Modal buttons
     document.getElementById('closeModalBtn').addEventListener('click', closeModal);
     document.getElementById('cancelBtn').addEventListener('click', closeModal);
     document.getElementById('saveBtn').addEventListener('click', saveNote);
     document.getElementById('deleteBtn').addEventListener('click', deleteNote);
     
+    // Medical Modal buttons
+    document.getElementById('closeMedicalModalBtn').addEventListener('click', closeMedicalModal);
+    document.getElementById('cancelMedicalBtn').addEventListener('click', closeMedicalModal);
+    document.getElementById('saveMedicalBtn').addEventListener('click', saveMedicalProfile);
+    
     // Modal backdrop click
     document.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+    document.querySelectorAll('.modal-backdrop')[1]?.addEventListener('click', closeMedicalModal);
     
-    // Character/word counter
+    // Character/word counter for notes
     const contentInput = document.getElementById('noteContentInput');
     contentInput.addEventListener('input', updateCounters);
     
-    // Clear all data
-    document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+    // BMI calculation
+    document.getElementById('medical-weight')?.addEventListener('input', calculateBMI);
+    document.getElementById('medical-height')?.addEventListener('input', calculateBMI);
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -87,27 +118,215 @@ function setupEventListeners() {
             openNewNote();
         }
         
+        // Ctrl/Cmd + M: Medical profile
+        if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+            e.preventDefault();
+            toggleMedicalProfile();
+        }
+        
         // Escape: Close modal
         if (e.key === 'Escape') {
-            const modal = document.getElementById('noteModal');
-            if (modal.classList.contains('active')) {
+            const noteModal = document.getElementById('noteModal');
+            const medicalModal = document.getElementById('medicalModal');
+            if (noteModal.classList.contains('active')) {
                 closeModal();
+            }
+            if (medicalModal.classList.contains('active')) {
+                closeMedicalModal();
             }
         }
     });
 }
 
+// Toggle medical profile view
+function toggleMedicalProfile() {
+    const medicalBtn = document.getElementById('medicalProfileBtn');
+    const notesGrid = document.getElementById('notesGrid');
+    const medicalView = document.getElementById('medicalProfileView');
+    const emptyState = document.getElementById('emptyState');
+    const noResults = document.getElementById('noResults');
+    
+    isShowingMedical = !isShowingMedical;
+    
+    if (isShowingMedical) {
+        // Show medical profile
+        medicalBtn.classList.add('active');
+        notesGrid.style.display = 'none';
+        medicalView.style.display = 'block';
+        emptyState.classList.remove('active');
+        noResults.classList.remove('active');
+        
+        // Clear search
+        document.getElementById('searchInput').value = '';
+        
+        // Update stats to show medical view
+        document.getElementById('totalNotes').textContent = '1';
+        document.getElementById('filteredNotes').textContent = '1';
+        
+        // Display medical profile data
+        displayMedicalProfile();
+    } else {
+        // Show notes
+        medicalBtn.classList.remove('active');
+        notesGrid.style.display = 'grid';
+        medicalView.style.display = 'none';
+        
+        // Restore normal notes view
+        renderNotes();
+        updateStats();
+    }
+}
+
+// Load medical profile from IndexedDB
+function loadMedicalProfile() {
+    const transaction = db.transaction([MEDICAL_STORE], 'readonly');
+    const objectStore = transaction.objectStore(MEDICAL_STORE);
+    const request = objectStore.get('profile');
+    
+    request.onsuccess = () => {
+        if (request.result) {
+            medicalProfile = request.result.data || {};
+        } else {
+            medicalProfile = {};
+        }
+        console.log('Medical profile loaded', medicalProfile);
+    };
+    
+    request.onerror = () => {
+        console.error('Failed to load medical profile');
+        medicalProfile = {};
+    };
+}
+
+// Display medical profile
+function displayMedicalProfile() {
+    MEDICAL_FIELDS.forEach(field => {
+        const element = document.getElementById(`field-${field}`);
+        if (element) {
+            const value = medicalProfile[field] || '';
+            element.textContent = value || '(not set)';
+            element.style.color = value ? 'var(--text)' : 'var(--text-secondary)';
+        }
+    });
+}
+
+// Open medical edit modal
+function openMedicalEdit() {
+    const modal = document.getElementById('medicalModal');
+    modal.classList.add('active');
+    
+    // Load current values into form
+    MEDICAL_FIELDS.forEach(field => {
+        const input = document.getElementById(`medical-${field}`);
+        if (input) {
+            input.value = medicalProfile[field] || '';
+        }
+    });
+    
+    // Calculate BMI if weight and height exist
+    calculateBMI();
+}
+
+// Close medical modal
+function closeMedicalModal() {
+    const modal = document.getElementById('medicalModal');
+    modal.classList.remove('active');
+}
+
+// Save medical profile
+function saveMedicalProfile() {
+    // Collect all field values
+    const newProfile = {};
+    MEDICAL_FIELDS.forEach(field => {
+        const input = document.getElementById(`medical-${field}`);
+        if (input) {
+            newProfile[field] = input.value.trim();
+        }
+    });
+    
+    // Save to IndexedDB
+    const transaction = db.transaction([MEDICAL_STORE], 'readwrite');
+    const objectStore = transaction.objectStore(MEDICAL_STORE);
+    const request = objectStore.put({
+        id: 'profile',
+        data: newProfile,
+        modified: Date.now()
+    });
+    
+    request.onsuccess = () => {
+        medicalProfile = newProfile;
+        displayMedicalProfile();
+        closeMedicalModal();
+        showToast('Medical profile saved', 'success');
+    };
+    
+    request.onerror = () => {
+        console.error('Failed to save medical profile');
+        showToast('Failed to save medical profile', 'error');
+    };
+}
+
+// Calculate BMI
+function calculateBMI() {
+    const weightInput = document.getElementById('medical-weight');
+    const heightInput = document.getElementById('medical-height');
+    const bmiInput = document.getElementById('medical-bmi');
+    
+    if (weightInput && heightInput && bmiInput) {
+        const weight = parseFloat(weightInput.value);
+        const heightCm = parseFloat(heightInput.value);
+        
+        if (weight > 0 && heightCm > 0) {
+            const heightM = heightCm / 100;
+            const bmi = (weight / (heightM * heightM)).toFixed(2);
+            bmiInput.value = bmi;
+        } else {
+            bmiInput.value = '';
+        }
+    }
+}
+
+// Copy medical profile to clipboard
+function copyMedicalProfile() {
+    let text = '筆記 (Medical Profile)\n';
+    text += '=' .repeat(30) + '\n\n';
+    
+    MEDICAL_FIELDS.forEach(field => {
+        const label = document.querySelector(`#medicalProfileView label[for="field-${field}"]`)?.textContent || field;
+        const value = medicalProfile[field] || '(not set)';
+        text += `${label} ${value}\n`;
+    });
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Medical profile copied to clipboard', 'success');
+    }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('Medical profile copied to clipboard', 'success');
+    });
+}
+
 // Load all notes from IndexedDB
 function loadNotes() {
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const objectStore = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([NOTES_STORE], 'readonly');
+    const objectStore = transaction.objectStore(NOTES_STORE);
     const request = objectStore.getAll();
     
     request.onsuccess = () => {
         allNotes = request.result.sort((a, b) => b.modified - a.modified);
         filteredNotes = allNotes;
-        renderNotes();
-        updateStats();
+        
+        // Only render if not showing medical profile
+        if (!isShowingMedical) {
+            renderNotes();
+            updateStats();
+        }
+        
         console.log(`Loaded ${allNotes.length} notes`);
     };
     
@@ -218,6 +437,11 @@ function highlightText(element, searchTerm) {
 
 // Filter notes based on search term
 function filterNotes(searchTerm) {
+    // Exit medical view if searching
+    if (isShowingMedical && searchTerm) {
+        toggleMedicalProfile();
+    }
+    
     if (!searchTerm) {
         filteredNotes = allNotes;
     } else {
@@ -234,6 +458,11 @@ function filterNotes(searchTerm) {
 
 // Open new note modal
 function openNewNote() {
+    // Exit medical view if creating new note
+    if (isShowingMedical) {
+        toggleMedicalProfile();
+    }
+    
     currentNote = null;
     
     document.getElementById('modalTitle').textContent = 'New Note';
@@ -304,8 +533,8 @@ function saveNote() {
         note.id = currentNote.id;
         note.created = currentNote.created;
         
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const objectStore = transaction.objectStore(STORE_NAME);
+        const transaction = db.transaction([NOTES_STORE], 'readwrite');
+        const objectStore = transaction.objectStore(NOTES_STORE);
         const request = objectStore.put(note);
         
         request.onsuccess = () => {
@@ -323,8 +552,8 @@ function saveNote() {
         // Create new note
         note.created = Date.now();
         
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const objectStore = transaction.objectStore(STORE_NAME);
+        const transaction = db.transaction([NOTES_STORE], 'readwrite');
+        const objectStore = transaction.objectStore(NOTES_STORE);
         const request = objectStore.add(note);
         
         request.onsuccess = () => {
@@ -353,8 +582,8 @@ function deleteNote() {
 
 // Delete note by ID
 function deleteNoteById(id) {
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const objectStore = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([NOTES_STORE], 'readwrite');
+    const objectStore = transaction.objectStore(NOTES_STORE);
     const request = objectStore.delete(id);
     
     request.onsuccess = () => {
@@ -401,41 +630,22 @@ function updateCounters() {
 
 // Update statistics
 function updateStats() {
-    // Total notes
-    document.getElementById('totalNotes').textContent = allNotes.length;
-    
-    // Filtered notes
-    document.getElementById('filteredNotes').textContent = filteredNotes.length;
+    if (isShowingMedical) {
+        // Medical view stats
+        document.getElementById('totalNotes').textContent = '1';
+        document.getElementById('filteredNotes').textContent = '1';
+    } else {
+        // Normal notes stats
+        document.getElementById('totalNotes').textContent = allNotes.length;
+        document.getElementById('filteredNotes').textContent = filteredNotes.length;
+    }
     
     // Storage used (rough estimate)
-    const storageUsed = JSON.stringify(allNotes).length;
-    const storageKB = (storageUsed / 1024).toFixed(1);
+    const notesSize = JSON.stringify(allNotes).length;
+    const medicalSize = JSON.stringify(medicalProfile).length;
+    const totalSize = notesSize + medicalSize;
+    const storageKB = (totalSize / 1024).toFixed(1);
     document.getElementById('storageUsed').textContent = `${storageKB} KB`;
-}
-
-// Clear all data
-function clearAllData() {
-    if (confirm('This will delete ALL your notes. Are you sure?')) {
-        if (confirm('This action cannot be undone. Delete everything?')) {
-            const transaction = db.transaction([STORE_NAME], 'readwrite');
-            const objectStore = transaction.objectStore(STORE_NAME);
-            const request = objectStore.clear();
-            
-            request.onsuccess = () => {
-                console.log('All data cleared');
-                showToast('All data cleared', 'info');
-                allNotes = [];
-                filteredNotes = [];
-                renderNotes();
-                updateStats();
-            };
-            
-            request.onerror = () => {
-                console.error('Failed to clear data');
-                showToast('Failed to clear data', 'error');
-            };
-        }
-    }
 }
 
 // Format date for display
