@@ -3,8 +3,8 @@
   "short_name": "biji",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#151B23",
-  "theme_color": "#151B23",
+  "background_color": "#0f0f0f",
+  "theme_color": "#0f0f0f",
   "icons": [
     {
       "src": "icon-192.png",
