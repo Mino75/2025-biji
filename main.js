@@ -15,6 +15,7 @@ let filteredNotes = [];
 let medicalProfile = {};
 let isShowingMedical = false;
 let autosaveTimer = null;
+let isNewNoteExplicit = false;
 
 // Medical profile field IDs
 const MEDICAL_FIELDS = [
@@ -295,7 +296,7 @@ function calculateBMI() {
 // Copy medical profile to clipboard
 function copyMedicalProfile() {
     let text = '筆記 (Medical Profile)\n';
-    text += '=' .repeat(30) + '\n\n';
+    text += '='.repeat(30) + '\n\n';
     
     MEDICAL_FIELDS.forEach(field => {
         const label = document.querySelector(`#medicalProfileView label[for="field-${field}"]`)?.textContent || field;
@@ -470,6 +471,7 @@ function openNewNote() {
     }
     
     currentNote = null;
+    isNewNoteExplicit = true;
     
     document.getElementById('modalTitle').textContent = 'New Note';
     document.getElementById('noteTitleInput').value = '';
@@ -489,7 +491,8 @@ function openNewNote() {
 
 // Open edit note modal
 function openEditNote(note) {
-    currentNote = note;
+    // Set immediately to prevent autosave creating new note
+    currentNote = { ...note };
     
     document.getElementById('modalTitle').textContent = 'Edit Note';
     document.getElementById('noteTitleInput').value = note.title || '';
@@ -713,22 +716,26 @@ function performAutosave() {
     const transaction = db.transaction([NOTES_STORE], 'readwrite');
     const store = transaction.objectStore(NOTES_STORE);
 
-    if (currentNote) {
-        // Update existing
-        note.id = currentNote.id;
-        note.created = currentNote.created;
-        store.put(note);
-    } else {
-        // Create new draft
+    if (!currentNote && !isNewNoteExplicit) {
+        return; // block double creation
+    }
+    
+    if (!currentNote && isNewNoteExplicit) {
+        // real creation so allow creation
         note.created = Date.now();
         const request = store.add(note);
-
         request.onsuccess = () => {
             note.id = request.result;
             currentNote = note;
             document.getElementById('deleteBtn').style.display = 'block';
         };
+    } else {
+        // update
+        note.id = currentNote.id;
+        note.created = currentNote.created;
+        store.put(note);
     }
+
 
     // Silent refresh in background
     transaction.oncomplete = () => loadNotes();
@@ -766,4 +773,5 @@ function showToast(message, type = 'info') {
 }
 
 console.log('✨ Biji ready!');
+
 
