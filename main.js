@@ -6,6 +6,7 @@ const DB_NAME = 'BijiDB';
 const DB_VERSION = 2; // Increased version for new structure
 const NOTES_STORE = 'notes';
 const MEDICAL_STORE = 'medical';
+const AUTOSAVE_DELAY = 800; // ms after user stops typing
 
 let db = null;
 let currentNote = null;
@@ -13,6 +14,7 @@ let allNotes = [];
 let filteredNotes = [];
 let medicalProfile = {};
 let isShowingMedical = false;
+let autosaveTimer = null;
 
 // Medical profile field IDs
 const MEDICAL_FIELDS = [
@@ -79,6 +81,10 @@ function setupEventListeners() {
     // Medical profile buttons
     document.getElementById('editMedicalBtn')?.addEventListener('click', openMedicalEdit);
     document.getElementById('copyMedicalBtn')?.addEventListener('click', copyMedicalProfile);
+
+    // Autosave on typing stop
+    document.getElementById('noteTitleInput').addEventListener('input', scheduleAutosave);
+    document.getElementById('noteContentInput').addEventListener('input', scheduleAutosave);
     
     // Search
     const searchInput = document.getElementById('searchInput');
@@ -510,6 +516,8 @@ function closeModal() {
     const modal = document.getElementById('noteModal');
     modal.classList.remove('active');
     currentNote = null;
+    clearTimeout(autosaveTimer);
+    performAutosave();
 }
 
 // Save note
@@ -677,6 +685,57 @@ function formatDate(timestamp) {
     }
 }
 
+// Autosave Scheduler
+function scheduleAutosave() {
+    if (!document.getElementById('noteModal').classList.contains('active')) return;
+
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+        performAutosave();
+    }, AUTOSAVE_DELAY);
+}
+
+//Perform autosave
+
+function performAutosave() {
+    const title = document.getElementById('noteTitleInput').value.trim();
+    const content = document.getElementById('noteContentInput').value.trim();
+
+    // Skip empty drafts
+    if (!title && !content) return;
+
+    const note = {
+        title: title || 'Untitled',
+        content: content || '',
+        modified: Date.now()
+    };
+
+    const transaction = db.transaction([NOTES_STORE], 'readwrite');
+    const store = transaction.objectStore(NOTES_STORE);
+
+    if (currentNote) {
+        // Update existing
+        note.id = currentNote.id;
+        note.created = currentNote.created;
+        store.put(note);
+    } else {
+        // Create new draft
+        note.created = Date.now();
+        const request = store.add(note);
+
+        request.onsuccess = () => {
+            note.id = request.result;
+            currentNote = note;
+            document.getElementById('deleteBtn').style.display = 'block';
+        };
+    }
+
+    // Silent refresh in background
+    transaction.oncomplete = () => loadNotes();
+}
+
+
+
 // Show toast notification
 function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -707,3 +766,4 @@ function showToast(message, type = 'info') {
 }
 
 console.log('✨ Biji ready!');
+
