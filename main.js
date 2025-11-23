@@ -518,9 +518,15 @@ function openEditNote(note) {
 function closeModal() {
     const modal = document.getElementById('noteModal');
     modal.classList.remove('active');
-    currentNote = null;
+ 
     clearTimeout(autosaveTimer);
-    performAutosave();
+   
+    // Perform autosave safely
+    if (currentNote || isNewNoteExplicit) {
+        performAutosave();
+    }
+    currentNote = null;
+    isNewNoteExplicit = false;
 }
 
 // Save note
@@ -728,6 +734,7 @@ function performAutosave() {
             note.id = request.result;
             currentNote = note;
             document.getElementById('deleteBtn').style.display = 'block';
+            isNewNoteExplicit = false; // prevent duplicate creation
         };
     } else {
         // update
@@ -773,5 +780,6 @@ function showToast(message, type = 'info') {
 }
 
 console.log('✨ Biji ready!');
+
 
 
