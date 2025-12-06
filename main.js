@@ -20,8 +20,8 @@ let isNewNoteExplicit = false;
 // Medical profile field IDs
 const MEDICAL_FIELDS = [
     'name', 'birthday', 'bloodtype', 'weight', 'height', 'bmi',
-    'allergies', 'bloodpressure', 'diabetes', 'vision', 'hearing',
-    'medical', 'allergies', 'father name', 'father birthday', 'mother name', 'mother birthday', 'siblings', 'children(s) name','children(s) birthday', 'T-shirt size', 'pant size', 'foot size', 'languages'
+    'forbidden', 'bloodpressure', 'diabetes', 'vision', 'hearing',
+    'medical', 'allergies', 'father','mother', 'siblings', 'children', 'topsize', 'pantsize', 'footsize', 'languages'
 ];
 
 // Initialize the app
@@ -780,6 +780,7 @@ function showToast(message, type = 'info') {
 }
 
 console.log('✨ Biji ready!');
+
 
 
 
